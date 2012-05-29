@@ -56,10 +56,11 @@ public class Helper {
     }
     
     public static String readFile(String file){
+        String currentDir = System.getProperty("user.dir");
         StringBuilder text = new StringBuilder();
         String NL = System.getProperty("line.separator");
         try {
-            Scanner scanner = new Scanner(new FileInputStream(file));
+            Scanner scanner = new Scanner(new FileInputStream(currentDir+"/"+file));
             while (scanner.hasNextLine()){
                 text.append(scanner.nextLine()).append(NL);
             }

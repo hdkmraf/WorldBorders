@@ -24,13 +24,14 @@ public class Dump {
     private String dir;
     private Graph graph;
     private Hashtable nationalities;
-    private String NATIONALITIES_FILE = "./nationalities.csv";
+    private String NATIONALITIES_FILE = "src/worldborders/nationalities.csv";
     
     public Dump(String dir, int maxRequests){
         this.proxy = null;
         this.port = -1;
         this.dir = dir;
         graph = new Graph(dir, dir+"graph.db", true);
+        readNationalities();
     }
     
     public Dump(String dir, int maxRequests, String proxy, int port){
@@ -38,6 +39,7 @@ public class Dump {
         this.port = port;
         this.dir = dir;
         graph = new Graph(dir, dir+"graph.db", true);
+        readNationalities();
     }
     
     
@@ -53,7 +55,11 @@ public class Dump {
             Matcher country1Matcher = country1Pattern.matcher(countryLine);
             if(country1Matcher.matches()){
                 String wikiPage = country1Matcher.group(1);
-                String country1 = country1Matcher.group(2);
+                String nationality = country1Matcher.group(2);
+                String country1 = (String) nationalities.get(nationality);
+                if (country1 == null){
+                    country1 = nationality;
+                }
                 String response = getWikiRevision(wikiPage);
                 if(response != null){
                     String [] revisionLines = response.split("\n");

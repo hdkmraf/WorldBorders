@@ -6,9 +6,12 @@ package worldborders;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.StringBuilder;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -17,6 +20,7 @@ import java.net.URLConnection;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,6 +54,21 @@ public class Helper {
         }
         
     }
+    
+    public static String readFile(String file){
+        StringBuilder text = new StringBuilder();
+        String NL = System.getProperty("line.separator");
+        try {
+            Scanner scanner = new Scanner(new FileInputStream(file));
+            while (scanner.hasNextLine()){
+                text.append(scanner.nextLine()).append(NL);
+            }
+            scanner.close();
+        } catch (FileNotFoundException ex) {
+            Logger.getLogger(Helper.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return text.toString();        
+    }            
     
     public static String makeRequest (String request, String proxy, int port){
         URL fullRequest;

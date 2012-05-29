@@ -49,6 +49,7 @@ public class Dump {
         Pattern country2Pattern = Pattern.compile(".*\\{\\{flag.*\\|\\s*([\\w\\s]+)\\}\\}");
         Pattern daysPattern = Pattern.compile(".*yes\\|(\\d+) day.*");
         Pattern monthsPattern = Pattern.compile(".*yes\\|(\\d+) month.*");
+        Pattern freedomPattern = Pattern.compile(".*yes.*Freedom of movement.*");
         String [] countryLines = getWikiRevision("Template:Visa_requirements").split("\n");
         
         for (String countryLine : countryLines){
@@ -69,22 +70,31 @@ public class Dump {
                            String country2 = country2Matcher.group(1); 
                            float duration = 0;
                            i++;
-                           Matcher daysMatcher = daysPattern.matcher(revisionLines[i]);
-                           Matcher monthsMatcher = monthsPattern.matcher(revisionLines[i]);
+                           Matcher daysMatcher = daysPattern.matcher(revisionLines[i]);                                                      
                            if(daysMatcher.matches()){
                                duration = Float.valueOf(daysMatcher.group(1));
-                           } else if (monthsMatcher.matches()){
-                               duration = Float.valueOf(monthsMatcher.group(1))*30;
-                           }                      
+                           }
+                           else {
+                               Matcher monthsMatcher = monthsPattern.matcher(revisionLines[i]);
+                               if (monthsMatcher.matches()){
+                                    duration = Float.valueOf(monthsMatcher.group(1))*30;
+                               }
+                               else {
+                                   Matcher freedomMatcher = freedomPattern.matcher(revisionLines[i]);
+                                   if(freedomMatcher.matches()){
+                                        duration = 360;                               
+                                   }
+                               }     
+                           }                       
                            if (duration >0){
                                graph.createRelationship(country1, country2, duration/100, duration);
-                               System.out.println(country1+","+country2+","+duration/100+","+duration);                            
+                               System.out.println(country1+","+country2+","+duration/100+","+duration);    
                            }
                         }
                     }
                 }
-            }            
-        }   
+            }
+        }                                                                                                              
         graph.shutDown();
         System.out.println("Finished");
     }

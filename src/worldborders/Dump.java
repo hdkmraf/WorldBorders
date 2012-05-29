@@ -45,8 +45,8 @@ public class Dump {
     
     //select="users" or select="startups"
     public void getCountries(){
-        Pattern country1Pattern = Pattern.compile(".*(Visa requirements for [\\w\\s]+ citizens)\\s*\\|([\\w\\s]+).*");
-        Pattern country2Pattern = Pattern.compile(".*\\{\\{flag.*\\|([\\w\\s]+)\\}\\}");
+        Pattern country1Pattern = Pattern.compile(".*(Visa requirements for [\\w\\s]+ citizens)\\s*\\|\\s*([\\w\\s]+).*");
+        Pattern country2Pattern = Pattern.compile(".*\\{\\{flag.*\\|\\s*([\\w\\s]+)\\}\\}");
         Pattern daysPattern = Pattern.compile(".*yes\\|(\\d+) day.*");
         Pattern monthsPattern = Pattern.compile(".*yes\\|(\\d+) month.*");
         String [] countryLines = getWikiRevision("Template:Visa_requirements").split("\n");
@@ -67,17 +67,17 @@ public class Dump {
                         Matcher country2Matcher = country2Pattern.matcher(revisionLines[i]);
                         if(country2Matcher.matches()){
                            String country2 = country2Matcher.group(1); 
-                           Double duration = 0.0;
+                           float duration = 0;
                            i++;
                            Matcher daysMatcher = daysPattern.matcher(revisionLines[i]);
                            Matcher monthsMatcher = monthsPattern.matcher(revisionLines[i]);
                            if(daysMatcher.matches()){
-                               duration = Double.valueOf(daysMatcher.group(1));
+                               duration = Float.valueOf(daysMatcher.group(1));
                            } else if (monthsMatcher.matches()){
-                               duration = Double.valueOf(monthsMatcher.group(1))*30;
+                               duration = Float.valueOf(monthsMatcher.group(1))*30;
                            }                      
                            if (duration >0){
-                               graph.createRelationship(proxy, country2, duration/100, duration);
+                               graph.createRelationship(country1, country2, duration/100, duration);
                                System.out.println(country1+","+country2+","+duration/100+","+duration);                            
                            }
                         }
@@ -107,37 +107,6 @@ public class Dump {
         return revisions;
     }
     
-    
-    
-   
-     
-     //select must be users, startups or startup_roles
-     public void mongoImportAll(String select){
-         String drop = " --drop";
-         String command = "mongoimport --host localhost --db angelmatch --collection "+select+" --type json --file ";
-         File folder = new File(dir);
-         File[] files = folder.listFiles();
-         for(int i=0; i<files.length; i++){
-             if(files[i].isFile()){
-                 String fileName = files[i].getName();
-                 if (fileName.matches(select+"_\\d+\\.json")){
-                   String cmd = command+dir+fileName+drop;
-                   drop = "";
-                   Runtime run = Runtime.getRuntime();
-                   Process pr;
-                   try {
-                        pr = run.exec(cmd);
-                        pr.waitFor();      
-                        System.out.println(cmd);
-                    } catch (IOException ex) {
-                        Logger.getLogger(Dump.class.getName()).log(Level.SEVERE, null, ex);
-                    }catch (InterruptedException ex) {
-                        Logger.getLogger(Dump.class.getName()).log(Level.SEVERE, null, ex);
-                    }                       
-                 }    
-             }
-         }
-     }
      
      private void readNationalities(){
          nationalities = new Hashtable();

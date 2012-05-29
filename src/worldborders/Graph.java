@@ -91,7 +91,7 @@ public class Graph {
     }
     // END SNIPPET: shutdownHook
     
-    public void createRelationship(String from, String to, Double weight, Double days){
+    public void createRelationship(String from, String to, float weight, float days){
          Transaction tx = graphDb.beginTx();
          Node fromNode = null;
          Node toNode = null;

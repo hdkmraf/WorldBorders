@@ -52,7 +52,8 @@ public class Dump {
         Pattern daysPattern = Pattern.compile(".*yes\\|(\\d+) day.*");
         Pattern monthsPattern = Pattern.compile(".*yes\\|(\\d+) month.*");
         Pattern freedomPattern = Pattern.compile(".*yes.*Freedom of movement.*");
-        Pattern codePattern = Pattern.compile(".*\\{\\{(\\w\\w\\w)\\}\\}\\s+(\\d+)\\s+(day|month)s?");
+        Pattern codePattern = Pattern.compile(".*\\{\\{.*\\|?([A-Z]{3})\\}\\}\\s+(\\d+)\\s+(day|month)s?");
+        Pattern namePattern = Pattern.compile(".*?\\{\\{.*?\\|??\\s*?([\\w\\s]+)\\}\\}\\s+?(\\d+)\\s+?(day|month)s?");
         
         String [] countryLines = getWikiRevision("Template:Visa_requirements").split("\n");
         
@@ -72,7 +73,7 @@ public class Dump {
                     for(int i=0; i<revisionLines.length; i++){
                         Matcher country2Matcher = country2Pattern.matcher(revisionLines[i]);
                         float duration = 0;
-                        String country2 = null;
+                        String country2 = "";
                         if(country2Matcher.matches()){
                            country2 = country2Matcher.group(1);                           
                            i++;
@@ -101,6 +102,16 @@ public class Dump {
                                 duration = Float.valueOf(codeMatcher.group(2));
                                 if("month".equals(codeMatcher.group(3))){
                                     duration *= 30;
+                                }
+                            }
+                            else{
+                                Matcher nameMatcher = namePattern.matcher(revisionLines[i]);
+                                if(nameMatcher.matches()){
+                                    country2 = nameMatcher.group(1);
+                                    duration = Float.valueOf(nameMatcher.group(2));
+                                    if("month".equals(nameMatcher.group(3))){
+                                        duration *= 30;
+                                    }   
                                 }
                             }
                         }

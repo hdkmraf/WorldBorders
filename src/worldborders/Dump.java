@@ -23,8 +23,9 @@ public class Dump {
     private int port;
     private String dir;
     private Graph graph;
-    private Hashtable nationalities;
-    private String NATIONALITIES_FILE = "src/worldborders/nationalities.csv";
+    private Hashtable<String, String> nationalities;
+    private Hashtable<String, String> countryCodes;
+    private String NATIONALITIES_FILE = "src/worldborders/country_codes.csv";
     
     public Dump(String dir, int maxRequests){
         this.proxy = null;
@@ -46,10 +47,13 @@ public class Dump {
     //select="users" or select="startups"
     public void getCountries(){
         Pattern country1Pattern = Pattern.compile(".*(Visa requirements for [\\w\\s]+ citizens)\\s*\\|\\s*([\\w\\s]+).*");
-        Pattern country2Pattern = Pattern.compile(".*\\{\\{flag.*\\|\\s*([\\w\\s]+)\\}\\}");
+        
+        Pattern country2Pattern = Pattern.compile(".*\\{\\{flag.*\\|\\s*([\\w\\s]+)\\}\\}");        
         Pattern daysPattern = Pattern.compile(".*yes\\|(\\d+) day.*");
         Pattern monthsPattern = Pattern.compile(".*yes\\|(\\d+) month.*");
         Pattern freedomPattern = Pattern.compile(".*yes.*Freedom of movement.*");
+        Pattern codePattern = Pattern.compile(".*\\{\\{(\\w\\w\\w)\\}\\}\\s+(\\d+)\\s+(day|month)s?");
+        
         String [] countryLines = getWikiRevision("Template:Visa_requirements").split("\n");
         
         for (String countryLine : countryLines){
@@ -57,18 +61,20 @@ public class Dump {
             if(country1Matcher.matches()){
                 String wikiPage = country1Matcher.group(1);
                 String nationality = country1Matcher.group(2);
-                String country1 = (String) nationalities.get(nationality);
+                String country1 = nationalities.get(nationality);
                 if (country1 == null){
                     country1 = nationality;
                 }
                 String response = getWikiRevision(wikiPage);
                 if(response != null){
                     String [] revisionLines = response.split("\n");
+                    
                     for(int i=0; i<revisionLines.length; i++){
                         Matcher country2Matcher = country2Pattern.matcher(revisionLines[i]);
+                        float duration = 0;
+                        String country2 = null;
                         if(country2Matcher.matches()){
-                           String country2 = country2Matcher.group(1); 
-                           float duration = 0;
+                           country2 = country2Matcher.group(1);                           
                            i++;
                            Matcher daysMatcher = daysPattern.matcher(revisionLines[i]);                                                      
                            if(daysMatcher.matches()){
@@ -85,11 +91,23 @@ public class Dump {
                                         duration = 360;                               
                                    }
                                }     
-                           }                       
-                           if (duration >0){
-                               graph.createRelationship(country1, country2, duration/100, duration);
-                               System.out.println(country1+","+country2+","+duration/100+","+duration);    
-                           }
+                           }                                                  
+                        }
+                        
+                        else {
+                            Matcher codeMatcher = codePattern.matcher(revisionLines[i]);
+                            if (codeMatcher.matches()){
+                                country2 = countryCodes.get(codeMatcher.group(1));
+                                duration = Float.valueOf(codeMatcher.group(2));
+                                if("month".equals(codeMatcher.group(3))){
+                                    duration *= 30;
+                                }
+                            }
+                        }
+                        
+                        if (duration >0){
+                            graph.createRelationship(country1, country2, duration/100, duration);
+                            System.out.println(country1+","+country2+","+duration/100+","+duration);    
                         }
                     }
                 }
@@ -119,11 +137,13 @@ public class Dump {
     
      
      private void readNationalities(){
-         nationalities = new Hashtable();
+         nationalities = new Hashtable<String, String>();
+         countryCodes = new Hashtable<String, String>();
          String[] lines = Helper.readFile(NATIONALITIES_FILE).split(System.getProperty("line.separator"));
          for(String line:lines){
-             String[] country = line.split(":");
-             nationalities.put(country[1], country[0]);
+             String[] country = line.split(",");
+             nationalities.put(country[2], country[1]);
+             countryCodes.put(country[0], country[1]);
          }
      }
 }

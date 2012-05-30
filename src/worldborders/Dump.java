@@ -59,9 +59,9 @@ public class Dump {
         
         durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|week|month).*");
         
-        codePattern = Pattern.compile(".*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
-        namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*([A-Z][a-z][a-zA-Z\\s]+)\\}\\}(.*)");
-        visaPattern = Pattern.compile(".*([Aa]rrival|[Ii]ssue|[Ee]ntry|[Ss]ingle|[Hh]old|[Tt]ransit|[Ee]xcempt|[Tt]ouris|[Ss]tay|[Oo]nly|[Rr]equire|[Pp]olicy).*");
+        codePattern = Pattern.compile("^\\W.*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
+        namePattern = Pattern.compile("^\\W.*?\\{\\{.*?\\|?\\s*([A-Z][a-z][a-zA-Z\\s]+)\\}\\}(.*)");
+        visaPattern = Pattern.compile(".*(VOA|[Aa]rrival|[Ii]ssue|[Ee]ntry|[Ss]ingle|[Hh]old|[Tt]ransit|[Ee]xcempt|[Tt]ouris|[Ss]tay|[Oo]nly|[Rr]equire|[Pp]olicy|[Rr]require).*");
     }
     
     public void dumpToFiles(){

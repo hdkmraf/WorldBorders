@@ -55,13 +55,13 @@ public class Dump {
     
     private void compilePatterns(){
         country1Pattern = Pattern.compile(".*(Visa requirements for [a-zA-Z\\s]+ citizens)\\s*\\|\\s*([a-zA-Z\\s]+).*");
-        freedomPattern = Pattern.compile(".*(Free|free|FREE|Unlimited|unlimited|UNLIMITED|Freedom|freedom).*");
+        freedomPattern = Pattern.compile(".*([Ff]ree|[Uu]nlimited).*");
         
         durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|week|month).*");
         
         codePattern = Pattern.compile(".*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
         namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*([A-Z][a-z][a-zA-Z\\s]+)\\}\\}(.*)");
-        visaPattern = Pattern.compile(".*(arrival|Arrival|issued|Issued).*");
+        visaPattern = Pattern.compile(".*([Aa]rrival|[Ii]ssue|[Ee]ntry|[Ss]ingle|[Hh]old|[Tt]ransit|[Ee]xcempt|[Tt]ouris|[Ss]tay|[Oo]nly).*");
     }
     
     public void dumpToFiles(){
@@ -169,12 +169,9 @@ public class Dump {
         Matcher freedomMatcher = freedomPattern.matcher(line);
         Matcher durationMatcher = durationPattern.matcher(line);
         Matcher visaMatcher = visaPattern.matcher(line);
-        if (visaMatcher.matches()){
+        if (visaMatcher.matches() || line.contains("{{No|") || line.contains("{{no|")){
             return 0F;                               
-        }
-        if (freedomMatcher.matches()){
-            return 360F;                               
-        }
+        }        
         if (durationMatcher.matches()){
             duration = Float.valueOf(durationMatcher.group(1));
             if ("month".equals(durationMatcher.group(2))){
@@ -186,6 +183,9 @@ public class Dump {
         }
         if (line.contains("yes")){
             return 30F;
+        }
+        if (freedomMatcher.matches()){
+            return 360F;                               
         }
         return duration;
     }

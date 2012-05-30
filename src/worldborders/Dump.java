@@ -55,7 +55,7 @@ public class Dump {
     
     private void compilePatterns(){
         country1Pattern = Pattern.compile(".*(Visa requirements for [a-zA-Z\\s]+ citizens)\\s*\\|\\s*([a-zA-Z\\s]+).*");        
-        country2Pattern = Pattern.compile("\\!.*\\{\\{.*?\\|\\s*([a-zA-Z\\s]+)\\}\\}");        
+        country2Pattern = Pattern.compile("[\\!\\|].*\\{\\{.*?\\|\\s*([a-zA-Z\\s]+)\\}\\}");        
         durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|month).*");
         freedomPattern = Pattern.compile(".*?Free|free|FREE|Unlimited|unlimited|UNLIMITED.*");
         codePattern = Pattern.compile("\\*.*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}.*");
@@ -87,15 +87,18 @@ public class Dump {
     public void getCountries(){ 
         File folder = new File(dir);
         File[] listOfFiles = folder.listFiles();
-        
+        int count = 0;
         for (File file : listOfFiles){
+            boolean found = false;
+            String country1 = "";
             if(file.isFile()){
-                String country1 = file.getName();
+                country1 = file.getName();
                 String response = Helper.readFile(file.getPath());
-                String [] revisionLines = response.split("\n");                    
+                String [] revisionLines = response.split("\n"); 
+                float duration = 0;
                 for(int i=0; i<revisionLines.length; i++){
                     Matcher country2Matcher = country2Pattern.matcher(revisionLines[i]);
-                    float duration = 0;
+                    duration = 0;
                     String country2 = "";
                     if(country2Matcher.matches()){
                         country2 = country2Matcher.group(1);                           
@@ -160,12 +163,20 @@ public class Dump {
                     if (duration >0){
                         graph.createRelationship(country1, country2, duration/100, duration);
                         System.out.println(country1+","+country2+","+duration/100+","+duration);    
+                        found = true;
                     }
-                }
-            }       
+                }               
+            }    
+            if(found){
+                count++;
+            }
+            else{
+                System.out.println("Problem:"+country1);
+            }
+                
         }                                                                                                              
         graph.shutDown();
-        System.out.println("Finished");
+        System.out.println("Finished:"+count+":"+listOfFiles.length);
     }
     
  

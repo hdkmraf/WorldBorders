@@ -110,7 +110,8 @@ public class Graph {
             relationship.setProperty(DAYS_KEY, days);
             tx.success();
          } catch (Exception ex){
-             System.out.println(ex.getMessage());
+             //System.out.println("Problem with graph relationship:"+ex);
+             ex.getMessage();
          }
            finally {
              tx.finish();

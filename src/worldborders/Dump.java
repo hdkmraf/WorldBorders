@@ -4,6 +4,7 @@
  */
 package worldborders;
 import java.io.File;
+import java.util.ArrayList;
 import org.neo4j.shell.util.json.JSONException;
 import java.util.Hashtable;
 import java.util.Iterator;
@@ -24,8 +25,7 @@ public class Dump {
     private Hashtable<String, String> nationalities;
     private Hashtable<String, String> countryCodes;
     private String NATIONALITIES_FILE;
-    private Pattern country1Pattern;
-    private Pattern country2Pattern;        
+    private Pattern country1Pattern;     
     private Pattern durationPattern;
     private Pattern freedomPattern;
     private Pattern codePattern;
@@ -54,12 +54,13 @@ public class Dump {
     }
     
     private void compilePatterns(){
-        country1Pattern = Pattern.compile(".*(Visa requirements for [a-zA-Z\\s]+ citizens)\\s*\\|\\s*([a-zA-Z\\s]+).*");        
-        country2Pattern = Pattern.compile("[\\!\\|].*\\{\\{.*?\\|\\s*([a-zA-Z\\s]+)\\}\\}");        
-        durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|month).*");
-        freedomPattern = Pattern.compile(".*?Free|free|FREE|Unlimited|unlimited|UNLIMITED.*");
-        codePattern = Pattern.compile("\\*.*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}.*");
-        namePattern = Pattern.compile("\\*.*?\\{\\{.*?\\|?\\s*([a-zA-Z\\s]+)\\}\\}.*");
+        country1Pattern = Pattern.compile(".*(Visa requirements for [a-zA-Z\\s]+ citizens)\\s*\\|\\s*([a-zA-Z\\s]+).*");
+        freedomPattern = Pattern.compile(".*(Free|free|FREE|Unlimited|unlimited|UNLIMITED|Freedom|freedom).*");
+        
+        durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|week|month).*");
+        
+        codePattern = Pattern.compile(".*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
+        namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*([A-Z][a-zA-Z\\s]+)\\}\\}(.*)");
         visaPattern = Pattern.compile(".*(arrival|Arrival|issued|Issued).*");
     }
     
@@ -95,72 +96,56 @@ public class Dump {
                 country1 = file.getName();
                 String response = Helper.readFile(file.getPath());
                 String [] revisionLines = response.split("\n"); 
-                float duration = 0;
                 for(int i=0; i<revisionLines.length; i++){
-                    Matcher country2Matcher = country2Pattern.matcher(revisionLines[i]);
-                    duration = 0;
-                    String country2 = "";
-                    if(country2Matcher.matches()){
-                        country2 = country2Matcher.group(1);                           
-                        i++;
-                        if(revisionLines[i].contains("yes")){
-                            Matcher durationMatcher = durationPattern.matcher(revisionLines[i]);
-                            if(durationMatcher.matches()){
-                                duration = Float.valueOf(durationMatcher.group(1));
-                                if("month".equals(durationMatcher.group(2))){
-                                    duration *= 30;
-                                }
-                            }
-                            else {
-                                Matcher freedomMatcher = freedomPattern.matcher(revisionLines[i]);
-                                if(freedomMatcher.matches()){
-                                    duration = 360;                               
-                                }
-                                else{
-                                    duration = 30;
-                                }
-                            }                                                                               
-                        }
-                    }
-                        
-                    else {
-                        Matcher codeMatcher = codePattern.matcher(revisionLines[i]);
-                        Matcher freedomMatcher = freedomPattern.matcher(revisionLines[i]);
-                        Matcher durationMatcher = durationPattern.matcher(revisionLines[i]);
-                        Matcher visaMatcher = visaPattern.matcher(revisionLines[i]);
-                        if(visaMatcher.matches()){
+                    Matcher nameMatcher = namePattern.matcher(revisionLines[i]);
+                    Matcher codeMatcher = codePattern.matcher(revisionLines[i]);
+                    Float duration = null;
+                    String country2 = null;                    
+                    if (codeMatcher.matches()){
+                        //System.out.println(codeMatcher.group(1));
+                        country2 = countryCodes.get(codeMatcher.group(1));
+                        if (country2 == null){
                             continue;
                         }
-                        if (codeMatcher.matches()){
-                            country2 = countryCodes.get(codeMatcher.group(1));
-                            if (freedomMatcher.matches()){
-                                duration = 360;
-                            }
-                            else if (durationMatcher.matches()){
-                                duration = Float.valueOf(durationMatcher.group(1));
-                                if("month".equals(durationMatcher.group(2))){
-                                    duration *= 30;
-                                }                                
-                            }
+                        if (codeMatcher.group(2).length()>0){
+                            duration = getDuration(revisionLines[i]);
                         }
-                        else{
-                            Matcher nameMatcher = namePattern.matcher(revisionLines[i]);
-                            if(nameMatcher.matches()){
-                                country2 = nameMatcher.group(1);
-                                if (freedomMatcher.matches()){
-                                    duration = 360;
+                        else {
+                            if (i>=revisionLines.length-1){
+                                duration = 30F;
+                            }
+                            else {
+                                duration = getDuration(revisionLines[i+1]);
+                                if (duration == null){
+                                    duration = 30F;
                                 }
-                                else if (durationMatcher.matches()){
-                                    duration = Float.valueOf(durationMatcher.group(1));
-                                    if("month".equals(durationMatcher.group(2))){
-                                        duration *= 30;
-                                    }                                
+                                else{
+                                    i++;
                                 }
                             }
                         }
-                    }
-                        
-                    if (duration >0){
+                    }   
+                    else if (nameMatcher.matches()){                        
+                        country2 = nameMatcher.group(1);
+                        if (nameMatcher.group(2).length()>0){
+                            duration = getDuration(revisionLines[i]);
+                        }
+                        else {
+                            if (i>=revisionLines.length-1){
+                                duration = 30F;
+                            }
+                            else {
+                                duration = getDuration(revisionLines[i+1]);
+                                if (duration == null){
+                                    duration = 30F;
+                                }
+                                else{
+                                    i++                                    ;
+                                }                                    
+                            }
+                        }                        
+                    }                                           
+                    if (duration != null && duration > 0){
                         graph.createRelationship(country1, country2, duration/100, duration);
                         System.out.println(country1+","+country2+","+duration/100+","+duration);    
                         found = true;
@@ -171,15 +156,39 @@ public class Dump {
                 count++;
             }
             else{
-                System.out.println("Problem:"+country1);
-            }
-                
+                System.out.println("Problem:"+country1+", Size:"+file.length());
+            }                
         }                                                                                                              
         graph.shutDown();
         System.out.println("Finished:"+count+":"+listOfFiles.length);
     }
     
  
+    private Float getDuration(String line){
+        Float duration = null;
+        Matcher freedomMatcher = freedomPattern.matcher(line);
+        Matcher durationMatcher = durationPattern.matcher(line);
+        Matcher visaMatcher = visaPattern.matcher(line);
+        if (visaMatcher.matches()){
+            return 0F;                               
+        }
+        if (freedomMatcher.matches()){
+            return 360F;                               
+        }
+        if (durationMatcher.matches()){
+            duration = Float.valueOf(durationMatcher.group(1));
+            if ("month".equals(durationMatcher.group(2))){
+                return duration * 30;
+            } 
+            if ("week".equals(durationMatcher.group(2))){
+                return duration * 7;
+            }
+        }
+        if (line.contains("yes")){
+            return 30F;
+        }
+        return duration;
+    }
     
     private String getWikiRevision(String request){
         String wikiRequest = "http://en.wikipedia.org/w/api.php?format=json&action=query&prop=revisions&rvprop=content&titles="; 

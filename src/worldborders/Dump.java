@@ -60,7 +60,7 @@ public class Dump {
         durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|week|month).*");
         
         codePattern = Pattern.compile(".*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
-        namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*([A-Z][a-zA-Z\\s]+)\\}\\}(.*)");
+        namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*([A-Z][a-z][a-zA-Z\\s]+)\\}\\}(.*)");
         visaPattern = Pattern.compile(".*(arrival|Arrival|issued|Issued).*");
     }
     
@@ -93,7 +93,7 @@ public class Dump {
             boolean found = false;
             String country1 = "";
             if(file.isFile()){
-                country1 = file.getName();
+                country1 = getCountryShortName(file.getName());
                 String response = Helper.readFile(file.getPath());
                 String [] revisionLines = response.split("\n"); 
                 for(int i=0; i<revisionLines.length; i++){
@@ -126,7 +126,7 @@ public class Dump {
                         }
                     }   
                     else if (nameMatcher.matches()){                        
-                        country2 = nameMatcher.group(1);
+                        country2 = getCountryShortName(nameMatcher.group(1));
                         if (nameMatcher.group(2).length()>0){
                             duration = getDuration(revisionLines[i]);
                         }
@@ -217,5 +217,24 @@ public class Dump {
              nationalities.put(country[2], country[1]);
              countryCodes.put(country[0], country[1]);
          }
+     }
+     
+     private String  getCountryShortName(String country){
+         String lowerCountry = country.toLowerCase();
+         for(String name : nationalities.values()){
+             if(lowerCountry.contains(name.toLowerCase())){
+                 return name;
+             }
+             if(name.toLowerCase().contains(lowerCountry)){
+                 return name;
+             }
+         }
+
+         for(String denonym : nationalities.keySet()){
+             if(denonym.toLowerCase().contains(country)){
+                 return nationalities.get(denonym);
+             }             
+         }         
+         return country;
      }
 }

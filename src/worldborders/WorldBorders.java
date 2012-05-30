@@ -20,6 +20,7 @@ public class WorldBorders {
         int maxRequestsPerHour = 1000;
         
         Dump dump = new Dump(dir, maxRequestsPerHour, proxy, port);
+        //dump.dumpToFiles();
         dump.getCountries();
     }
 }

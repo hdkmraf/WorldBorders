@@ -30,6 +30,7 @@ public class Dump {
     private Pattern freedomPattern;
     private Pattern codePattern;
     private Pattern namePattern;
+    private Pattern visaPattern;
     
     public Dump(String dir, int maxRequests){
         this.proxy = null;
@@ -54,11 +55,12 @@ public class Dump {
     
     private void compilePatterns(){
         country1Pattern = Pattern.compile(".*(Visa requirements for [a-zA-Z\\s]+ citizens)\\s*\\|\\s*([a-zA-Z\\s]+).*");        
-        country2Pattern = Pattern.compile(".*\\{\\{.*?\\|\\s*?([a-zA-Z\\s]+)\\}\\}");        
-        durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+?(day|month).*?");
-        freedomPattern = Pattern.compile(".*?Free|free|FREE|Unlimited|unlimited|UNLIMITED.*?");
-        codePattern = Pattern.compile(".*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}.*?");
-        namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*?([a-zA-Z\\s]+)\\}\\}.*?");
+        country2Pattern = Pattern.compile("\\!.*\\{\\{.*?\\|\\s*([a-zA-Z\\s]+)\\}\\}");        
+        durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|month).*");
+        freedomPattern = Pattern.compile(".*?Free|free|FREE|Unlimited|unlimited|UNLIMITED.*");
+        codePattern = Pattern.compile("\\*.*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}.*");
+        namePattern = Pattern.compile("\\*.*?\\{\\{.*?\\|?\\s*([a-zA-Z\\s]+)\\}\\}.*");
+        visaPattern = Pattern.compile(".*(arrival|Arrival|issued|Issued).*");
     }
     
     public void dumpToFiles(){
@@ -98,25 +100,34 @@ public class Dump {
                     if(country2Matcher.matches()){
                         country2 = country2Matcher.group(1);                           
                         i++;
-                        Matcher durationMatcher = durationPattern.matcher(revisionLines[i]);                                                      
-                        if(durationMatcher.matches()){
-                            duration = Float.valueOf(durationMatcher.group(1));
-                            if("month".equals(durationMatcher.group(2))){
-                                duration *= 30;
+                        if(revisionLines[i].contains("yes")){
+                            Matcher durationMatcher = durationPattern.matcher(revisionLines[i]);
+                            if(durationMatcher.matches()){
+                                duration = Float.valueOf(durationMatcher.group(1));
+                                if("month".equals(durationMatcher.group(2))){
+                                    duration *= 30;
+                                }
                             }
+                            else {
+                                Matcher freedomMatcher = freedomPattern.matcher(revisionLines[i]);
+                                if(freedomMatcher.matches()){
+                                    duration = 360;                               
+                                }
+                                else{
+                                    duration = 30;
+                                }
+                            }                                                                               
                         }
-                        else {
-                            Matcher freedomMatcher = freedomPattern.matcher(revisionLines[i]);
-                            if(freedomMatcher.matches()){
-                                duration = 360;                               
-                            }
-                        }                                                                               
                     }
                         
                     else {
                         Matcher codeMatcher = codePattern.matcher(revisionLines[i]);
                         Matcher freedomMatcher = freedomPattern.matcher(revisionLines[i]);
                         Matcher durationMatcher = durationPattern.matcher(revisionLines[i]);
+                        Matcher visaMatcher = visaPattern.matcher(revisionLines[i]);
+                        if(visaMatcher.matches()){
+                            continue;
+                        }
                         if (codeMatcher.matches()){
                             country2 = countryCodes.get(codeMatcher.group(1));
                             if (freedomMatcher.matches()){
@@ -126,7 +137,7 @@ public class Dump {
                                 duration = Float.valueOf(durationMatcher.group(1));
                                 if("month".equals(durationMatcher.group(2))){
                                     duration *= 30;
-                                }
+                                }                                
                             }
                         }
                         else{
@@ -140,7 +151,7 @@ public class Dump {
                                     duration = Float.valueOf(durationMatcher.group(1));
                                     if("month".equals(durationMatcher.group(2))){
                                         duration *= 30;
-                                    }
+                                    }                                
                                 }
                             }
                         }

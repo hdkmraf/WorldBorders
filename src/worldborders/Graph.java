@@ -127,7 +127,7 @@ public class Graph {
         Node node = graphDb.createNode();
         node.setProperty(NAME_KEY, country.NAME);
         node.setProperty(CODE_KEY, country.CODE);
-        node.setProperty(LATITUDE_KEY, country.LONGITUDE);
+        node.setProperty(LATITUDE_KEY, country.LATITUDE);
         node.setProperty(LONGITUDE_KEY, country.LONGITUDE);
         
         nameIndex.add(node, NAME_KEY, country.NAME);

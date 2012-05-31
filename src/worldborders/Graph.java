@@ -46,6 +46,7 @@ public class Graph {
         //graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
         graphDb = new EmbeddedGraphDatabase( DB_PATH );
         nameIndex = graphDb.index().forNodes(NAME_KEY);
+        codeIndex = graphDb.index().forNodes(CODE_KEY);
         registerShutdownHook( graphDb );
         // END SNIPPET: startDb
     }

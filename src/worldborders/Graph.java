@@ -26,9 +26,13 @@ public class Graph {
     String greeting;
     private GraphDatabaseService graphDb;
     private Index<Node> nameIndex;
+    private Index<Node> codeIndex;
     private String NAME_KEY = "name";
     private String WEIGHT_KEY = "weight";
     private String DAYS_KEY = "days";
+    private String CODE_KEY = "code";
+    private String LATITUDE_KEY = "latitude";
+    private String LONGITUDE_KEY = "longitude";
     private String DIR;
     
     
@@ -91,17 +95,17 @@ public class Graph {
     }
     // END SNIPPET: shutdownHook
     
-    public void createRelationship(String from, String to, float weight, float days){
+    public void createRelationship(Country from, Country to, Float weight, Float days){
          Transaction tx = graphDb.beginTx();
          Node fromNode = null;
          Node toNode = null;
          Relationship relationship;
          try{
-            fromNode = nameIndex.get(NAME_KEY, from).getSingle();
+            fromNode = codeIndex.get(CODE_KEY, from.CODE).getSingle();
             if(fromNode == null){
                 fromNode = createAndIndexNode(from);
             }
-            toNode = nameIndex.get(NAME_KEY, to).getSingle();
+            toNode = codeIndex.get(CODE_KEY, to.CODE).getSingle();
             if(toNode == null){
                 toNode = createAndIndexNode(to);
             }
@@ -118,10 +122,15 @@ public class Graph {
          }              
     }
     
-     private Node createAndIndexNode(String name){
+     private Node createAndIndexNode(Country country){
         Node node = graphDb.createNode();
-        node.setProperty(NAME_KEY, name);
-        nameIndex.add(node, NAME_KEY, name);
+        node.setProperty(NAME_KEY, country.NAME);
+        node.setProperty(CODE_KEY, country.CODE);
+        node.setProperty(LATITUDE_KEY, country.LONGITUDE);
+        node.setProperty(LONGITUDE_KEY, country.LONGITUDE);
+        
+        nameIndex.add(node, NAME_KEY, country.NAME);
+        codeIndex.add(node, CODE_KEY, country.CODE);
         return node;
         
     }        

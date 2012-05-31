@@ -24,6 +24,7 @@ public class Dump {
     private Graph graph;
     private Hashtable<String, String> nationalities;
     private Hashtable<String, String> countryCodes;
+    private Hashtable<String, Country> countries;
     private String NATIONALITIES_FILE;
     private Pattern country1Pattern;     
     private Pattern durationPattern;
@@ -46,6 +47,7 @@ public class Dump {
         init();
     }
     
+    
     private void init(){
         NATIONALITIES_FILE = System.getProperty("user.dir")+"/src/worldborders/country_codes.csv";
         graph = new Graph(dir, dir+"graph.db", true);
@@ -60,7 +62,7 @@ public class Dump {
         durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|week|month).*");
         
         codePattern = Pattern.compile("^\\W.*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
-        namePattern = Pattern.compile("^\\W.*?\\{\\{.*?\\|?\\s*([A-Z][a-z][a-zA-Z\\s]+)\\}\\}(.*)");
+        namePattern = Pattern.compile("^\\W.*?\\{\\{.*?\\|?\\s*([A-Z][a-zA-Z\\s]+)\\}\\}(.*)");
         visaPattern = Pattern.compile(".*(VOA|[Aa]rrival|[Ii]ssue|[Ee]ntry|[Ss]ingle|[Hh]old|[Tt]ransit|[Ee]xcempt|[Tt]ouris|[Ss]tay|[Oo]nly|[Rr]equire|[Pp]olicy|[Rr]require).*");
     }
     
@@ -91,19 +93,24 @@ public class Dump {
         int count = 0;
         for (File file : listOfFiles){
             boolean found = false;
-            String country1 = "";
+            Country country1 = null;
             if(file.isFile()){
-                country1 = getCountryShortName(file.getName());
+                String code1 = getCountryCode(file.getName());
+                if (code1==null){
+                    continue;
+                }
+                System.out.println(file.getName()+","+code1);
+                country1 = countries.get(code1);
                 String response = Helper.readFile(file.getPath());
                 String [] revisionLines = response.split("\n"); 
                 for(int i=0; i<revisionLines.length; i++){
                     Matcher nameMatcher = namePattern.matcher(revisionLines[i]);
                     Matcher codeMatcher = codePattern.matcher(revisionLines[i]);
                     Float duration = null;
-                    String country2 = null;                    
+                    Country country2 = null;
                     if (codeMatcher.matches()){
                         //System.out.println(codeMatcher.group(1));
-                        country2 = countryCodes.get(codeMatcher.group(1));
+                        country2 = countries.get(codeMatcher.group(1));
                         if (country2 == null){
                             continue;
                         }
@@ -125,8 +132,12 @@ public class Dump {
                             }
                         }
                     }   
-                    else if (nameMatcher.matches()){                        
-                        country2 = getCountryShortName(nameMatcher.group(1));
+                    else if (nameMatcher.matches()){ 
+                        String code2 = getCountryCode(nameMatcher.group(1));
+                        if (code2 == null){
+                            continue;
+                        }
+                        country2 = countries.get(code2);                      
                         if (nameMatcher.group(2).length()>0){
                             duration = getDuration(revisionLines[i]);
                         }
@@ -147,7 +158,7 @@ public class Dump {
                     }                                           
                     if (duration != null && duration > 0){
                         graph.createRelationship(country1, country2, duration/100, duration);
-                        System.out.println(country1+","+country2+","+duration/100+","+duration);    
+                        System.out.println(country1.NAME+","+country2.NAME+","+duration/100+","+duration);    
                         found = true;
                     }
                 }               
@@ -156,7 +167,7 @@ public class Dump {
                 count++;
             }
             else{
-                System.out.println("Problem:"+country1+", Size:"+file.length());
+                System.out.println("Problem:"+file.getName()+", Size:"+file.length());
             }                
         }                                                                                                              
         graph.shutDown();
@@ -211,30 +222,33 @@ public class Dump {
      private void readNationalities(){
          nationalities = new Hashtable<String, String>();
          countryCodes = new Hashtable<String, String>();
+         countries = new Hashtable<String, Country>();
          String[] lines = Helper.readFile(NATIONALITIES_FILE).split(System.getProperty("line.separator"));
-         for(String line:lines){
-             String[] country = line.split(",");
-             nationalities.put(country[2], country[1]);
-             countryCodes.put(country[0], country[1]);
+         for (int i=1; i<lines.length; i++){
+             String[] line = lines[i].split(",");
+             //System.out.println(i+","+lines[i]);
+             if (!"".equals(line[0])){                            
+                Country country = new Country(line[0], line[1], line[2], Float.valueOf(line[6]), Float.valueOf(line[7]));
+                countries.put(line[0], country);
+                nationalities.put(line[2], line[0]);
+                countryCodes.put(line[1], line[0]);
+             }
          }
      }
      
-     private String  getCountryShortName(String country){
+     private String  getCountryCode(String country){
          String lowerCountry = country.toLowerCase();
-         for(String name : nationalities.values()){
-             if(lowerCountry.contains(name.toLowerCase())){
-                 return name;
-             }
-             if(name.toLowerCase().contains(lowerCountry)){
-                 return name;
+         for(String nationality : nationalities.keySet()){
+             if(lowerCountry.contains(nationality.toLowerCase()) || nationality.toLowerCase().contains(lowerCountry)){
+                 return nationalities.get(nationality);
              }
          }
 
-         for(String denonym : nationalities.keySet()){
-             if(denonym.toLowerCase().contains(country)){
-                 return nationalities.get(denonym);
-             }             
+         for(String name : countryCodes.keySet()){
+             if(name.toLowerCase().contains(lowerCountry) || lowerCountry.contains(name.toLowerCase())){
+                 return countryCodes.get(name);
+             }
          }         
-         return country;
+         return null;
      }
 }

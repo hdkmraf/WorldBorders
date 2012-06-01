@@ -33,24 +33,24 @@ public class Dump {
     private Pattern namePattern;
     private Pattern visaPattern;
     
-    public Dump(String dir, int maxRequests){
+    public Dump(String dir, int maxRequests, Graph graph){
         this.proxy = null;
         this.port = -1;
         this.dir = dir;   
-        init();
+        init(graph);
     }
     
-    public Dump(String dir, int maxRequests, String proxy, int port){
+    public Dump(String dir, int maxRequests, Graph graph, String proxy, int port){
         this.proxy = proxy;
         this.port = port;
         this.dir = dir;    
-        init();
+        init(graph);
     }
     
     
-    private void init(){
+    private void init(Graph graph){
         NATIONALITIES_FILE = System.getProperty("user.dir")+"/src/worldborders/country_codes.csv";
-        graph = new Graph(dir, dir+"graph.db", true);
+        this.graph = graph;
         readNationalities();
         compilePatterns();     
     }

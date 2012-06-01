@@ -6,6 +6,8 @@ package worldborders;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Iterator;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -14,6 +16,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.util.FileUtils;
+import org.neo4j.tooling.GlobalGraphOperations;
 
 
 /**
@@ -97,10 +100,13 @@ public class Graph {
     // END SNIPPET: shutdownHook
     
     public void createRelationship(Country from, Country to, Float weight, Float days){
-         Transaction tx = graphDb.beginTx();
          Node fromNode = null;
          Node toNode = null;
          Relationship relationship;
+         if ("".equals(from.NAME) || "".equals(to.NAME) || from.NAME==null || to.NAME==null){
+            return;
+         }
+         Transaction tx = graphDb.beginTx();
          try{
             fromNode = codeIndex.get(CODE_KEY, from.CODE).getSingle();
             if(fromNode == null){
@@ -134,5 +140,86 @@ public class Graph {
         codeIndex.add(node, CODE_KEY, country.CODE);
         return node;
         
-    }        
+    }    
+     
+    public void graphToGoogleGeochart(){
+        String script = "";        
+        String NL = System.getProperty("line.separator");
+        
+        script+= "google.load('visualization', '1', {'packages':['geochart']});"+NL;
+        script+= "googleSetOnLoadCallback(drawRegionsMap);"+NL;
+        
+        script+= "function drawVisualization() {"+NL;
+        script+= "var data = {};"+NL;
+        
+        
+        //get data here        
+        GlobalGraphOperations graphOperations = GlobalGraphOperations.at(graphDb);
+        Iterable<Node> nodes = graphOperations.getAllNodes();
+        int i=1;
+        String dataZero = "data['main'] = google.visualization.arrayToDataTable([";
+        dataZero+= "['Country','Test'],";
+        
+        for(Node node: nodes){
+            Iterable<Relationship> relationships;
+            String fromCountry;
+            try{
+                relationships = node.getRelationships(Direction.OUTGOING);
+                fromCountry = (String) node.getProperty(NAME_KEY);                
+                fromCountry = fromCountry.replace("'", "\\'").replaceAll("[^\\p{ASCII}]", "");                
+                if (fromCountry.contains("China"))
+                    fromCountry = "China";
+                dataZero+= "['"+fromCountry+"',0],";
+            }
+            catch(Exception ex){
+                continue;
+            }
+            String currentData = "";
+            int relCount = 0;
+            for (Relationship relationship : relationships){
+                try{
+                    String toCountry = (String) relationship.getEndNode().getProperty(NAME_KEY);
+                    toCountry = toCountry.replace("'", "\\'").replaceAll("[^\\p{ASCII}]", "");
+                    if (toCountry.contains("China"))
+                        toCountry = "China";
+                    currentData+= "['"+toCountry+"',100],";
+                    relCount++;
+                }
+                catch(Exception ex){
+                    continue;
+                }
+            }
+            if(relCount>0){
+                currentData= currentData.substring(0,currentData.length()-1);
+                currentData= "data['"+fromCountry+"'] = google.visualization.arrayToDataTable([['Country','Test'],"+currentData;            
+                currentData+= "]);";
+            }
+            else{
+                currentData= "data['"+fromCountry+"'] = google.visualization.arrayToDataTable([['Country','Test'],['"+fromCountry+"',100]]);";
+            }
+            script += currentData+NL;
+            i++;
+        }
+        dataZero = dataZero.substring(0,dataZero.length()-1);
+        dataZero+= "]);"+NL;
+        
+        script += dataZero+NL;
+            
+        script+= "var index = 'main';"+NL;
+        script+= "var options = {width: 556, height: 347};"+NL;
+
+        script+= "var geochart = new google.visualization.GeoChart(document.getElementById('visualization'));"+NL;
+        script+= "geochart.draw(data[index], options);"+NL;   
+        
+        script+= "google.visualization.events.addListener(geochart,'select',myClickHandler);"+NL;
+        
+        script+= "function myClickHandler(){"+NL;
+        script+= "var select = geochart.getSelection();"+NL;
+        script+= "var newIndex = data[index].getValue(select[0].row,0);"+NL;
+        script+= "geochart.draw(data[newIndex], options);"+NL;
+        script+= "index = newIndex;}"+NL;
+        script+= "}";
+        
+        Helper.writeToFile(DIR+"googleGeochart.js", script.toString());
+    }
 }

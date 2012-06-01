@@ -19,8 +19,26 @@ public class WorldBorders {
         int port = 8080;
         int maxRequestsPerHour = 1000;
         
-        Dump dump = new Dump(dir, maxRequestsPerHour, proxy, port);
-        //dump.dumpToFiles();
-        dump.getCountries();
+        boolean newDump = false;        
+        boolean newGraph = false;
+        
+        Graph graph = new Graph(dir, dir+"graph.db", newGraph);
+        
+        Dump dump = new Dump(dir, maxRequestsPerHour, graph, proxy, port);
+        
+        //Get files from wikipedia and save the locally
+        if(newDump)
+            dump.dumpToFiles();
+        
+        //Get countries and make graph from relationships
+        if(newGraph)
+            dump.getCountries();
+
+        //Export graph to google chart
+        graph.graphToGoogleGeochart();
+        
+        //Shut down...
+        graph.shutDown();
+        
     }
 }

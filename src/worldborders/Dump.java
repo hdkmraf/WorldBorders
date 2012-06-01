@@ -32,6 +32,7 @@ public class Dump {
     private Pattern codePattern;
     private Pattern namePattern;
     private Pattern visaPattern;
+    private Pattern EUPattern;
     
     public Dump(String dir, int maxRequests, Graph graph){
         this.proxy = null;
@@ -55,15 +56,20 @@ public class Dump {
         compilePatterns();     
     }
     
+    private enum EUCodes{
+       AUT, BEL, BGR, CYP, CZE, DNK, EST, FIN, FRA, DEU, GRC, HUN, IRL, ITA, LVA, LTU, LUX, MLT, NLD, POL, PRT, ROU, SVK, SVN, ESP, SWE, GBR
+   }
+    
     private void compilePatterns(){
         country1Pattern = Pattern.compile(".*(Visa requirements for [a-zA-Z\\s]+ citizens)\\s*\\|\\s*([a-zA-Z\\s]+).*");
         freedomPattern = Pattern.compile(".*([Ff]ree|[Uu]nlimited).*");
         
         durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|week|month).*");
         
-        codePattern = Pattern.compile("^\\W.*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
-        namePattern = Pattern.compile("^\\W.*?\\{\\{.*?\\|?\\s*([A-Z][a-zA-Z\\s]+)\\}\\}(.*)");
-        visaPattern = Pattern.compile(".*(VOA|[Aa]rrival|[Ii]ssue|[Ee]ntry|[Ss]ingle|[Hh]old|[Tt]ransit|[Ee]xcempt|[Tt]ouris|[Ss]tay|[Oo]nly|[Rr]equire|[Pp]olicy|[Rr]require).*");
+        EUPattern = Pattern.compile(".*?\\{\\{.*?\\|?([Ee][Uu]|[Ee]uropean [Uu]nion|[Ss]chengen)\\}\\}(.*)");
+        codePattern = Pattern.compile(".*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
+        namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*([A-Z][a-zA-Z\\s]+)\\}\\}(.*)");
+        visaPattern = Pattern.compile(".*(VOA|[Aa]rrival|[Ii]ssue|[Ee]ntry|[Ss]ingle|[Hh]old|[Tt]ransit|[Rr]equire|[Ee]lectronic).*");
     }
     
     public void dumpToFiles(){
@@ -79,7 +85,7 @@ public class Dump {
                     }
                     String response = getWikiRevision(wikiPage);
                     if(response != null){
-                        Helper.writeToFile(dir+country1, response);
+                        Helper.writeToFile(dir+country1, response, false);
                     }             
                 }
         }
@@ -104,8 +110,10 @@ public class Dump {
                 String response = Helper.readFile(file.getPath());
                 String [] revisionLines = response.split("\n"); 
                 for(int i=0; i<revisionLines.length; i++){
+                    boolean foundEU = false;
                     Matcher nameMatcher = namePattern.matcher(revisionLines[i]);
                     Matcher codeMatcher = codePattern.matcher(revisionLines[i]);
+                    Matcher EUMatcher = EUPattern.matcher(revisionLines[i]);
                     Float duration = null;
                     Country country2 = null;
                     if (codeMatcher.matches()){
@@ -114,10 +122,8 @@ public class Dump {
                         if (country2 == null){
                             continue;
                         }
-                        if (codeMatcher.group(2).length()>0){
-                            duration = getDuration(revisionLines[i]);
-                        }
-                        else {
+                        duration = getDuration(revisionLines[i]);                        
+                        if (duration == null) {
                             if (i>=revisionLines.length-1){
                                 duration = 30F;
                             }
@@ -131,17 +137,36 @@ public class Dump {
                                 }
                             }
                         }
-                    }   
+                    }
+                    else if(EUMatcher.matches()){                    
+                        duration = getDuration(revisionLines[i]);
+                        if (duration == null){
+                            duration = getDuration(revisionLines[i+1]);
+                            if (duration == null){
+                                duration = 30F;
+                            }
+                            else{
+                                i++;
+                            }                                    
+                        }
+                        if (duration != null && duration > 0){                            
+                            for (EUCodes euCode : EUCodes.values()){
+                                country2 = countries.get(euCode.toString());                                 
+                                graph.createRelationship(country1, country2, duration/100, duration);
+                                System.out.println(country1.NAME+","+country2.NAME+","+duration/100+","+duration);                                    
+                            }
+                            found = true;                            
+                            foundEU = true;
+                        }                            
+                    }  
                     else if (nameMatcher.matches()){ 
                         String code2 = getCountryCode(nameMatcher.group(1));
                         if (code2 == null){
                             continue;
                         }
                         country2 = countries.get(code2);                      
-                        if (nameMatcher.group(2).length()>0){
-                            duration = getDuration(revisionLines[i]);
-                        }
-                        else {
+                        duration = getDuration(revisionLines[i]);                        
+                        if (duration == null) {
                             if (i>=revisionLines.length-1){
                                 duration = 30F;
                             }
@@ -151,15 +176,15 @@ public class Dump {
                                     duration = 30F;
                                 }
                                 else{
-                                    i++                                    ;
+                                    i++;
                                 }                                    
                             }
                         }                        
-                    }                                           
-                    if (duration != null && duration > 0){
+                    }                                                             
+                    if (duration != null && duration > 0 && !foundEU){
                         graph.createRelationship(country1, country2, duration/100, duration);
                         System.out.println(country1.NAME+","+country2.NAME+","+duration/100+","+duration);    
-                        found = true;
+                        found = true;                       
                     }
                 }               
             }    
@@ -170,7 +195,6 @@ public class Dump {
                 System.out.println("Problem:"+file.getName()+", Size:"+file.length());
             }                
         }                                                                                                              
-        graph.shutDown();
         System.out.println("Finished:"+count+":"+listOfFiles.length);
     }
     
@@ -180,7 +204,7 @@ public class Dump {
         Matcher freedomMatcher = freedomPattern.matcher(line);
         Matcher durationMatcher = durationPattern.matcher(line);
         Matcher visaMatcher = visaPattern.matcher(line);
-        if (visaMatcher.matches() || line.contains("{{No|") || line.contains("{{no|")){
+        if (visaMatcher.matches() || line.contains("{{No") || line.contains("{{no")){
             return 0F;                               
         }        
         if (durationMatcher.matches()){
@@ -192,12 +216,12 @@ public class Dump {
                 return duration * 7;
             }
         }
-        if (line.contains("yes")){
-            return 30F;
-        }
         if (freedomMatcher.matches()){
-            return 360F;                               
+            return 90F;                               
         }
+        if (line.contains("{{yes") || line.contains("{{Yes")){
+            return 90F;
+        }        
         return duration;
     }
     
@@ -237,13 +261,7 @@ public class Dump {
      }
      
      private String  getCountryCode(String country){
-         String lowerCountry = country.toLowerCase();
-         for(String nationality : nationalities.keySet()){
-             if(lowerCountry.contains(nationality.toLowerCase()) || nationality.toLowerCase().contains(lowerCountry)){
-                 return nationalities.get(nationality);
-             }
-         }
-
+         String lowerCountry = country.toLowerCase();         
          for(String name : countryCodes.keySet()){
              if(name.toLowerCase().contains(lowerCountry) || lowerCountry.contains(name.toLowerCase())){
                  return countryCodes.get(name);

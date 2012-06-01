@@ -42,10 +42,13 @@ public class Helper {
         }
     }
     
-    public static void writeToFile (String file, String line){
+    public static void writeToFile (String file, String line, boolean newFile){
+        boolean append = true;
+        if(newFile)
+            append = false;
         FileWriter fstream;
         try {
-            fstream = new FileWriter(file, true);
+            fstream = new FileWriter(file, append);
             BufferedWriter out = new BufferedWriter(fstream);
             out.write(line);
             out.close();

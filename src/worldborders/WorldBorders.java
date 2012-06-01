@@ -20,7 +20,7 @@ public class WorldBorders {
         int maxRequestsPerHour = 1000;
         
         boolean newDump = false;        
-        boolean newGraph = false;
+        boolean newGraph = true;
         
         Graph graph = new Graph(dir, dir+"graph.db", newGraph);
         

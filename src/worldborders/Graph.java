@@ -37,12 +37,14 @@ public class Graph {
     private String LATITUDE_KEY = "latitude";
     private String LONGITUDE_KEY = "longitude";
     private String DIR;
+    private boolean newDB;
     
     
-    public Graph(String dir, String db_path, boolean newDb){
+    public Graph(String dir, String db_path, boolean newdb){
         DIR = dir;
         DB_PATH = db_path;
-        if(newDb){
+        newDB = newdb;
+        if(newDB){
             clearDb();
         }
         // START SNIPPET: startDb
@@ -103,7 +105,7 @@ public class Graph {
          Node fromNode = null;
          Node toNode = null;
          Relationship relationship;
-         if ("".equals(from.NAME) || "".equals(to.NAME) || from.NAME==null || to.NAME==null){
+         if (from.NAME==null || to.NAME==null || "".equals(from.NAME) || "".equals(to.NAME)){
             return;
          }
          Transaction tx = graphDb.beginTx();
@@ -158,45 +160,42 @@ public class Graph {
         Iterable<Node> nodes = graphOperations.getAllNodes();
         int i=1;
         String dataZero = "data['main'] = google.visualization.arrayToDataTable([";
-        dataZero+= "['Country','Test'],";
+        dataZero+= "['Country','Stay'],";
         
         for(Node node: nodes){
             Iterable<Relationship> relationships;
             String fromCountry;
+            String currentData = "";           
             try{
                 relationships = node.getRelationships(Direction.OUTGOING);
                 fromCountry = (String) node.getProperty(NAME_KEY);                
-                fromCountry = fromCountry.replace("'", "\\'").replaceAll("[^\\p{ASCII}]", "");                
+                fromCountry = fromCountry.replace("'", "").replaceAll("[^\\p{ASCII}]", "");                
                 if (fromCountry.contains("China"))
                     fromCountry = "China";
-                dataZero+= "['"+fromCountry+"',0],";
+                dataZero+= "['"+fromCountry+"',360],";
             }
             catch(Exception ex){
                 continue;
             }
-            String currentData = "";
+            currentData= "data['"+fromCountry+"'] = google.visualization.arrayToDataTable([['Country','Stay'],";
+            currentData+= "['"+fromCountry+"',360],";
             int relCount = 0;
             for (Relationship relationship : relationships){
                 try{
                     String toCountry = (String) relationship.getEndNode().getProperty(NAME_KEY);
-                    toCountry = toCountry.replace("'", "\\'").replaceAll("[^\\p{ASCII}]", "");
+                    toCountry = toCountry.replace("'", "").replaceAll("[^\\p{ASCII}]", "");                    
                     if (toCountry.contains("China"))
                         toCountry = "China";
-                    currentData+= "['"+toCountry+"',100],";
+                    currentData+= "['"+toCountry+"',"+relationship.getProperty(DAYS_KEY)+"],";
                     relCount++;
                 }
                 catch(Exception ex){
                     continue;
                 }
             }
-            if(relCount>0){
-                currentData= currentData.substring(0,currentData.length()-1);
-                currentData= "data['"+fromCountry+"'] = google.visualization.arrayToDataTable([['Country','Test'],"+currentData;            
-                currentData+= "]);";
-            }
-            else{
-                currentData= "data['"+fromCountry+"'] = google.visualization.arrayToDataTable([['Country','Test'],['"+fromCountry+"',100]]);";
-            }
+            currentData= currentData.substring(0,currentData.length()-1);          
+            currentData+= "]);";
+ 
             script += currentData+NL;
             i++;
         }
@@ -206,7 +205,8 @@ public class Graph {
         script += dataZero+NL;
             
         script+= "var index = 'main';"+NL;
-        script+= "var options = {width: 556, height: 347};"+NL;
+        script+= "var color = {minValue:1, maxValue:180, colors:['blue', 'green']};";
+        script+= "var options = {colorAxis: color, width: 556, height: 347};"+NL;
 
         script+= "var geochart = new google.visualization.GeoChart(document.getElementById('visualization'));"+NL;
         script+= "geochart.draw(data[index], options);"+NL;   
@@ -220,6 +220,6 @@ public class Graph {
         script+= "index = newIndex;}"+NL;
         script+= "}";
         
-        Helper.writeToFile(DIR+"googleGeochart.js", script.toString());
+        Helper.writeToFile(DIR+"googleGeochart.js", script.toString(), newDB);
     }
 }

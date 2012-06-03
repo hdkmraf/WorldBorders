@@ -15,7 +15,7 @@ public class WorldBorders {
      */
     public static void main(String[] args) {
         String proxy = "proxy-west.uec.ac.jp";
-        String dir = "/home/rafael/world_borders_dump/";
+        String dir = "./world_borders_dump/";
         int port = 8080;
         int maxRequestsPerHour = 1000;
         

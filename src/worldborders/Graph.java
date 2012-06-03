@@ -149,7 +149,7 @@ public class Graph {
         String NL = System.getProperty("line.separator");
         
         script+= "google.load('visualization', '1', {'packages':['geochart']});"+NL;
-        script+= "googleSetOnLoadCallback(drawRegionsMap);"+NL;
+        script+= "google.setOnLoadCallback(drawVisualization);"+NL;
         
         script+= "function drawVisualization() {"+NL;
         script+= "var data = {};"+NL;
@@ -186,8 +186,10 @@ public class Graph {
                     toCountry = toCountry.replace("'", "").replaceAll("[^\\p{ASCII}]", "");                    
                     if (toCountry.contains("China"))
                         toCountry = "China";
-                    currentData+= "['"+toCountry+"',"+relationship.getProperty(DAYS_KEY)+"],";
-                    relCount++;
+                    if(!fromCountry.equals(toCountry)){
+                        currentData+= "['"+toCountry+"',"+relationship.getProperty(DAYS_KEY)+"],";
+                        relCount++;
+                    }
                 }
                 catch(Exception ex){
                     continue;
@@ -205,8 +207,8 @@ public class Graph {
         script += dataZero+NL;
             
         script+= "var index = 'main';"+NL;
-        script+= "var color = {minValue:1, maxValue:180, colors:['blue', 'green']};";
-        script+= "var options = {colorAxis: color, width: 556, height: 347};"+NL;
+        script+= "var color = {minValue:1, colors:['blue', 'green']};"+NL;
+        script+= "var options = {colorAxis: color};"+NL;
 
         script+= "var geochart = new google.visualization.GeoChart(document.getElementById('visualization'));"+NL;
         script+= "geochart.draw(data[index], options);"+NL;   

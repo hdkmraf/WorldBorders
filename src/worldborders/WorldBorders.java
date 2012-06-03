@@ -19,7 +19,10 @@ public class WorldBorders {
         int port = 8080;
         int maxRequestsPerHour = 1000;
         
+        // newDump = true will get all the visa requiremens pages from wikiepdia, change to false for reruns
         boolean newDump = false;        
+        
+        // newGraph = true will overwrite the neo4j graph and googlechart.js
         boolean newGraph = true;
         
         Graph graph = new Graph(dir, dir+"graph.db", newGraph);

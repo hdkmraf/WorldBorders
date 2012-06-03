@@ -66,10 +66,10 @@ public class Dump {
         
         durationPattern = Pattern.compile(".*?(\\d{1,3})\\s+(day|week|month).*");
         
-        EUPattern = Pattern.compile(".*?\\{\\{.*?\\|?([Ee][Uu]|[Ee]uropean [Uu]nion|[Ss]chengen)\\}\\}(.*)");
+        EUPattern = Pattern.compile(".*?\\{\\{.*?\\|?([Ee][Uu]|[Ee]uropean [Uu]nion|[Ss]chengen [Aa]rea)\\}\\}(.*)");
         codePattern = Pattern.compile(".*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
         namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*([A-Z][a-zA-Z\\s]+)\\}\\}(.*)");
-        visaPattern = Pattern.compile(".*(VOA|[Aa]rrival|[Ii]ssue|[Ee]ntry|[Ss]ingle|[Hh]old|[Tt]ransit|[Rr]equire|[Ee]lectronic).*");
+        visaPattern = Pattern.compile(".*(VOA|[Aa]rrival|[Ii]ssue|[Ss]ingle|[Hh]old|[Tt]ransit|[Ee]lectronic|[Aa]long|[Vv]alid).*");
     }
     
     public void dumpToFiles(){

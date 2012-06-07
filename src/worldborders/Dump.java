@@ -33,6 +33,8 @@ public class Dump {
     private Pattern namePattern;
     private Pattern visaPattern;
     private Pattern EUPattern;
+    private Pattern continentPattern;
+    private Pattern sectionPattern;
     
     public Dump(String dir, int maxRequests, Graph graph){
         this.proxy = null;
@@ -57,7 +59,7 @@ public class Dump {
     }
     
     private enum EUCodes{
-       AUT, BEL, BGR, CYP, CZE, DNK, EST, FIN, FRA, DEU, GRC, HUN, IRL, ITA, LVA, LTU, LUX, MLT, NLD, POL, PRT, ROU, SVK, SVN, ESP, SWE, GBR
+       AUT, BEL, BGR, CYP, CZE, DNK, EST, FIN, FRA, DEU, GBR, GRC, HUN, IRL, ITA, LVA, LTU, LUX, MLT, NLD, POL, PRT, ROU, SVK, SVN, ESP, SWE;
    }
     
     private void compilePatterns(){
@@ -70,6 +72,8 @@ public class Dump {
         codePattern = Pattern.compile(".*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
         namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*([A-Z][a-zA-Z\\s]+)\\}\\}(.*)");
         visaPattern = Pattern.compile(".*(VOA|[Aa]rrival|[Ii]ssue|[Ss]ingle|[Hh]old|[Tt]ransit|[Ee]lectronic|[Aa]long|[Vv]alid).*");
+        sectionPattern = Pattern.compile(".*?={2,}.*?={2,}.*");
+        continentPattern = Pattern.compile(".*(America|Africa|Asia|Europe|Oceania|CARICOM|Pacific|Caribbean|ASEAN|EU).*");
     }
     
     public void dumpToFiles(){
@@ -109,8 +113,20 @@ public class Dump {
                 country1 = countries.get(code1);
                 String response = Helper.readFile(file.getPath());
                 String [] revisionLines = response.split("\n"); 
+                boolean inContinent = false;
                 for(int i=0; i<revisionLines.length; i++){
                     boolean foundEU = false;
+                    Matcher sectionMatcher = sectionPattern.matcher(revisionLines[i]);
+                    if(sectionMatcher.matches()){
+                        inContinent = false;
+                        Matcher continentMatcher = continentPattern.matcher(revisionLines[i]);
+                        if(continentMatcher.matches()){
+                            inContinent = true;
+                        }                        
+                    }
+                    if(!inContinent){
+                        continue;
+                    }                    
                     Matcher nameMatcher = namePattern.matcher(revisionLines[i]);
                     Matcher codeMatcher = codePattern.matcher(revisionLines[i]);
                     Matcher EUMatcher = EUPattern.matcher(revisionLines[i]);

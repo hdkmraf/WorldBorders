@@ -185,7 +185,11 @@ public class Graph {
                     String toCountry = (String) relationship.getEndNode().getProperty(NAME_KEY);
                     toCountry = toCountry.replace("'", "").replaceAll("[^\\p{ASCII}]", "");                    
                     if (toCountry.contains("China"))
-                        toCountry = "China";
+                        toCountry = "Taiwan";
+                        if(toCountry.contains("People")){
+                            toCountry = "China";
+                        }
+                        
                     if(!fromCountry.equals(toCountry)){
                         currentData+= "['"+toCountry+"',"+relationship.getProperty(DAYS_KEY)+"],";
                         relCount++;

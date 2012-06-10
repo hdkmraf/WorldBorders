@@ -71,7 +71,7 @@ public class Dump {
         EUPattern = Pattern.compile(".*?\\{\\{.*?\\|?([Ee][Uu]|[Ee]uropean [Uu]nion|[Ss]chengen [Aa]rea)\\}\\}(.*)");
         codePattern = Pattern.compile(".*?\\{\\{.*?\\|?([A-Z]{3})\\}\\}(.*)");
         namePattern = Pattern.compile(".*?\\{\\{.*?\\|?\\s*([A-Z][a-zA-Z\\s]+)\\}\\}(.*)");
-        visaPattern = Pattern.compile(".*(VOA|[Aa]rrival|[Ii]ssue|[Ss]ingle|[Hh]old|[Tt]ransit|[Ee]lectronic|[Aa]long|[Vv]alid).*");
+        visaPattern = Pattern.compile(".*(VOA|[Aa]rrival|[Ii]ssue|[Ss]ingle|[Hh]old|[Tt]ransit|[Aa]long|[Vv]alid).*");
         sectionPattern = Pattern.compile(".*?={2,}.*?={2,}.*");
         continentPattern = Pattern.compile(".*(America|Africa|Asia|Europe|Oceania|CARICOM|Pacific|Caribbean|ASEAN|EU).*");
     }
@@ -220,6 +220,9 @@ public class Dump {
         Matcher freedomMatcher = freedomPattern.matcher(line);
         Matcher durationMatcher = durationPattern.matcher(line);
         Matcher visaMatcher = visaPattern.matcher(line);
+        if(line.contains("{{No") || line.contains("{{no")|| line.contains("Visa required")|| line.contains("Visa issued")){
+            return 0F;  
+        }
         if (line.contains("{{yes") || line.contains("{{Yes")){
             if (durationMatcher.matches()){
                 duration = Float.valueOf(durationMatcher.group(1));
@@ -232,9 +235,9 @@ public class Dump {
             }    
             return 90F;
         }
-        if (visaMatcher.matches() || line.contains("{{No") || line.contains("{{no")){
-            return 0F;                               
-        }    
+        if (visaMatcher.matches()){
+            return 0F;
+        }
         if (durationMatcher.matches()){
             duration = Float.valueOf(durationMatcher.group(1));
             if ("month".equals(durationMatcher.group(2))){

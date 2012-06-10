@@ -220,9 +220,21 @@ public class Dump {
         Matcher freedomMatcher = freedomPattern.matcher(line);
         Matcher durationMatcher = durationPattern.matcher(line);
         Matcher visaMatcher = visaPattern.matcher(line);
+        if (line.contains("{{yes") || line.contains("{{Yes")){
+            if (durationMatcher.matches()){
+                duration = Float.valueOf(durationMatcher.group(1));
+                if ("month".equals(durationMatcher.group(2))){
+                    return duration * 30;
+                } 
+                if ("week".equals(durationMatcher.group(2))){
+                    return duration * 7;
+                }
+            }    
+            return 90F;
+        }
         if (visaMatcher.matches() || line.contains("{{No") || line.contains("{{no")){
             return 0F;                               
-        }        
+        }    
         if (durationMatcher.matches()){
             duration = Float.valueOf(durationMatcher.group(1));
             if ("month".equals(durationMatcher.group(2))){
@@ -231,13 +243,11 @@ public class Dump {
             if ("week".equals(durationMatcher.group(2))){
                 return duration * 7;
             }
-        }
+        }                    
         if (freedomMatcher.matches()){
             return 90F;                               
         }
-        if (line.contains("{{yes") || line.contains("{{Yes")){
-            return 90F;
-        }        
+         
         return duration;
     }
     
